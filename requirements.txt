@@ -1,0 +1,9 @@
+flask==3.0.0
+opencv-python==4.9.0.80
+invisible-watermark==0.2.0
+deepface==0.0.89
+reportlab==4.1.0
+google-api-python-client==2.120.0
+numpy==1.26.4
+Pillow==10.2.0
+tf-keras==2.16.0
