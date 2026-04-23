@@ -1,233 +1,222 @@
 import os
 import uuid
-from flask import Flask, request, jsonify, render_template, send_file
+from flask import Flask, request, jsonify, render_template, send_file, session, redirect, url_for
 
-# Import all our custom modules
-from database import init_db, save_protected_video, get_all_protected_videos, \
-                     get_all_detections, get_stats, save_detection, mark_dmca_generated
+from database import (init_db, create_user, verify_user, get_user_by_id,
+                      save_protected_video, get_user_protected_videos,
+                      save_detection, get_user_detections, get_user_stats,
+                      mark_dmca_generated)
 from watermark import embed_watermark, detect_watermark
 from deepfake import detect_deepfake
 from crawler import crawl_for_stolen_videos
 from dmca import generate_dmca_notice
 
-# Create Flask app
 app = Flask(__name__)
+# Secret key used to encrypt session cookies
+# In production use a long random string — this keeps sessions secure
+app.secret_key = "stampit_secret_key_change_this_in_production_2024"
 
-# Folder where uploaded (original) videos are temporarily stored
 UPLOAD_FOLDER = "uploads"
 PROTECTED_FOLDER = "protected"
 NOTICES_FOLDER = "notices"
-ALLOWED_EXTENSIONS = {"mp4", "avi", "mov", "mkv"}  # Only these video formats allowed
-
-app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
-app.config["MAX_CONTENT_LENGTH"] = 500 * 1024 * 1024  # Max upload size: 500MB
+ALLOWED_EXTENSIONS = {"mp4", "avi", "mov", "mkv"}
+app.config["MAX_CONTENT_LENGTH"] = 500 * 1024 * 1024  # 500MB max
 
 def allowed_file(filename):
-    # Check if file extension is in our allowed list
-    # "video.mp4".rsplit(".", 1) → ["video", "mp4"]
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
+def get_current_user():
+    # Check if user is logged in by looking at session
+    # session is like a secure cookie that stores user_id
+    user_id = session.get("user_id")
+    if not user_id:
+        return None
+    return get_user_by_id(user_id)
+
+def login_required(f):
+    # Decorator — wraps routes that need login
+    # If not logged in → return 401 error
+    from functools import wraps
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get("user_id"):
+            return jsonify({"error": "Please login first", "redirect": "/"}), 401
+        return f(*args, **kwargs)
+    return decorated
+
 # ─────────────────────────────────────────────
-# ROUTE 1: Home Page
+# AUTH ROUTES
 # ─────────────────────────────────────────────
+
 @app.route("/")
 def index():
-    # render_template() looks for index.html in the templates/ folder
-    return render_template("index.html")
+    # If already logged in → go to dashboard
+    if session.get("user_id"):
+        return redirect("/dashboard")
+    return render_template("login.html")
+
+@app.route("/dashboard")
+def dashboard():
+    if not session.get("user_id"):
+        return redirect("/")
+    user = get_current_user()
+    return render_template("dashboard.html", user=user)
+
+@app.route("/api/signup", methods=["POST"])
+def signup():
+    data = request.get_json()
+    username = data.get("username", "").strip()
+    email = data.get("email", "").strip()
+    password = data.get("password", "")
+
+    if not all([username, email, password]):
+        return jsonify({"error": "All fields required"}), 400
+    if len(password) < 6:
+        return jsonify({"error": "Password must be at least 6 characters"}), 400
+
+    user_id, error = create_user(username, email, password)
+    if error:
+        return jsonify({"error": error}), 400
+
+    # Auto login after signup — store user_id in session
+    session["user_id"] = user_id
+    session["username"] = username
+    return jsonify({"success": True, "username": username})
+
+@app.route("/api/login", methods=["POST"])
+def login():
+    data = request.get_json()
+    username = data.get("username", "").strip()
+    password = data.get("password", "")
+
+    user = verify_user(username, password)
+    if not user:
+        return jsonify({"error": "Wrong username or password"}), 401
+
+    # Store user info in session (encrypted cookie)
+    session["user_id"] = user["id"]
+    session["username"] = user["username"]
+    return jsonify({"success": True, "username": user["username"]})
+
+@app.route("/api/logout", methods=["POST"])
+def logout():
+    session.clear()  # Delete all session data = logged out
+    return jsonify({"success": True})
 
 # ─────────────────────────────────────────────
-# ROUTE 2: Protect a Video (Upload + Watermark)
+# PROTECTED ROUTES (need login)
 # ─────────────────────────────────────────────
-@app.route("/protect", methods=["POST"])
+
+@app.route("/api/protect", methods=["POST"])
+@login_required
 def protect_video():
-    """
-    Receives uploaded video + owner name.
-    Stamps it with invisible watermark.
-    Saves to database.
-    Returns watermark ID and protected filename.
-    """
-    # Check if file was actually included in the request
+    user = get_current_user()
+
     if "video" not in request.files:
-        return jsonify({"error": "No video file provided"}), 400
+        return jsonify({"error": "No video file"}), 400
 
-    file = request.files["video"]       # The uploaded video file
-    owner_name = request.form.get("owner_name", "Unknown")  # Owner name from form
-
-    # Check file is valid
-    if file.filename == "":
-        return jsonify({"error": "No file selected"}), 400
+    file = request.files["video"]
+    owner_name = request.form.get("owner_name", user["username"])
 
     if not allowed_file(file.filename):
-        return jsonify({"error": "Invalid file type. Use MP4, AVI, MOV, or MKV"}), 400
+        return jsonify({"error": "Invalid file type. Use MP4, AVI, MOV or MKV"}), 400
 
-    # Save uploaded file temporarily
-    # We add a UUID prefix to avoid name conflicts
     unique_prefix = str(uuid.uuid4())[:8]
     original_filename = f"{unique_prefix}_{file.filename}"
     upload_path = os.path.join(UPLOAD_FOLDER, original_filename)
-    file.save(upload_path)  # Save to disk
+    file.save(upload_path)
 
     try:
-        # Embed the invisible watermark stamp
         watermark_id, protected_filename = embed_watermark(upload_path, owner_name)
-
-        # Save record to database
-        save_protected_video(
-            original_filename=file.filename,
-            protected_filename=protected_filename,
-            watermark_id=watermark_id,
-            owner_name=owner_name
-        )
-
-        # Delete original upload (we only need the protected version)
+        save_protected_video(user["id"], file.filename, protected_filename, watermark_id, owner_name)
         os.remove(upload_path)
 
         return jsonify({
             "success": True,
             "watermark_id": watermark_id,
             "protected_filename": protected_filename,
-            "message": f"Video protected! Stamp ID: {watermark_id}"
+            "message": f"Video stamped! ID: {watermark_id}"
         })
-
     except Exception as e:
-        return jsonify({"error": f"Protection failed: {str(e)}"}), 500
+        return jsonify({"error": str(e)}), 500
 
-# ─────────────────────────────────────────────
-# ROUTE 3: Check a Video for Deepfake
-# ─────────────────────────────────────────────
-@app.route("/detect-fake", methods=["POST"])
+@app.route("/api/detect-fake", methods=["POST"])
+@login_required
 def detect_fake():
-    """
-    Receives a video.
-    Runs deepfake detection on it.
-    Returns verdict (REAL or FAKE) with confidence score.
-    """
+    user = get_current_user()
+
     if "video" not in request.files:
-        return jsonify({"error": "No video file provided"}), 400
+        return jsonify({"error": "No video file"}), 400
 
     file = request.files["video"]
-
     if not allowed_file(file.filename):
         return jsonify({"error": "Invalid file type"}), 400
 
-    # Save uploaded file temporarily for analysis
-    temp_filename = f"temp_{uuid.uuid4()}.mp4"
-    temp_path = os.path.join(UPLOAD_FOLDER, temp_filename)
+    temp_path = os.path.join(UPLOAD_FOLDER, f"tmp_{uuid.uuid4()}.mp4")
     file.save(temp_path)
 
     try:
-        # Run deepfake detection
         result = detect_deepfake(temp_path)
-
-        # Save detection to database if it's fake
         if result["is_fake"]:
-            save_detection(
-                video_url=f"uploaded_file_{file.filename}",
-                detection_type="fake",
-                confidence=result["confidence"]
-            )
-
-        # Clean up temp file
+            save_detection(user["id"], f"upload:{file.filename}", "fake", result["confidence"])
         os.remove(temp_path)
-
-        return jsonify({
-            "success": True,
-            "verdict": result["verdict"],
-            "confidence": result["confidence"],
-            "is_fake": result["is_fake"],
-            "reason": result["reason"]
-        })
-
+        return jsonify({"success": True, **result})
     except Exception as e:
-        return jsonify({"error": f"Detection failed: {str(e)}"}), 500
+        return jsonify({"error": str(e)}), 500
 
-# ─────────────────────────────────────────────
-# ROUTE 4: Check a Video for Stolen Watermark
-# ─────────────────────────────────────────────
-@app.route("/check-watermark", methods=["POST"])
+@app.route("/api/check-watermark", methods=["POST"])
+@login_required
 def check_watermark():
-    """
-    Receives a suspicious video.
-    Checks if it contains our invisible stamp.
-    Returns which original video it belongs to.
-    """
+    user = get_current_user()
+
     if "video" not in request.files:
-        return jsonify({"error": "No video file provided"}), 400
+        return jsonify({"error": "No video file"}), 400
 
     file = request.files["video"]
-    temp_path = os.path.join(UPLOAD_FOLDER, f"check_{uuid.uuid4()}.mp4")
+    temp_path = os.path.join(UPLOAD_FOLDER, f"chk_{uuid.uuid4()}.mp4")
     file.save(temp_path)
 
     try:
-        # Detect watermark in the video
         found_id = detect_watermark(temp_path)
         os.remove(temp_path)
 
         if found_id:
-            # Look up which original video this watermark belongs to
-            all_videos = get_all_protected_videos()
-            matched_video = None
-            for v in all_videos:
-                if v["watermark_id"] == found_id:
-                    matched_video = v
-                    break
-
+            # Check if this watermark belongs to current user
+            user_videos = get_user_protected_videos(user["id"])
+            matched = next((v for v in user_videos if v["watermark_id"] == found_id), None)
             return jsonify({
                 "success": True,
                 "watermark_found": True,
                 "watermark_id": found_id,
-                "original_video": matched_video,
-                "message": "This video contains a Sports Shield watermark!"
+                "original_video": matched,
+                "belongs_to_you": matched is not None
             })
         else:
-            return jsonify({
-                "success": True,
-                "watermark_found": False,
-                "message": "No watermark detected in this video"
-            })
-
+            return jsonify({"success": True, "watermark_found": False})
     except Exception as e:
-        return jsonify({"error": f"Check failed: {str(e)}"}), 500
+        return jsonify({"error": str(e)}), 500
 
-# ─────────────────────────────────────────────
-# ROUTE 5: Scan YouTube for Stolen Videos
-# ─────────────────────────────────────────────
-@app.route("/crawl", methods=["POST"])
+@app.route("/api/crawl", methods=["POST"])
+@login_required
 def crawl():
-    """
-    Takes owner name + filename + watermark ID.
-    Searches YouTube for potential stolen copies.
-    Returns list of suspicious videos.
-    """
-    data = request.get_json()  # Parse JSON body from request
+    user = get_current_user()
+    data = request.get_json()
     owner_name = data.get("owner_name")
     original_filename = data.get("original_filename")
     watermark_id = data.get("watermark_id")
 
     if not all([owner_name, original_filename, watermark_id]):
-        return jsonify({"error": "Missing required fields"}), 400
+        return jsonify({"error": "Missing fields"}), 400
 
     try:
-        suspicious_videos = crawl_for_stolen_videos(owner_name, original_filename, watermark_id)
-
-        return jsonify({
-            "success": True,
-            "suspicious_count": len(suspicious_videos),
-            "suspicious_videos": suspicious_videos
-        })
-
+        results = crawl_for_stolen_videos(user["id"], owner_name, original_filename, watermark_id)
+        return jsonify({"success": True, "suspicious_count": len(results), "suspicious_videos": results})
     except Exception as e:
-        return jsonify({"error": f"Crawl failed: {str(e)}"}), 500
+        return jsonify({"error": str(e)}), 500
 
-# ─────────────────────────────────────────────
-# ROUTE 6: Generate DMCA Notice PDF
-# ─────────────────────────────────────────────
-@app.route("/generate-dmca", methods=["POST"])
+@app.route("/api/generate-dmca", methods=["POST"])
+@login_required
 def generate_dmca():
-    """
-    Generates a DMCA takedown notice PDF for a detected stolen video.
-    Returns the PDF file for download.
-    """
     data = request.get_json()
     owner_name = data.get("owner_name")
     stolen_url = data.get("stolen_url")
@@ -236,63 +225,39 @@ def generate_dmca():
     detection_id = data.get("detection_id", "manual")
 
     if not all([owner_name, stolen_url, original_filename, watermark_id]):
-        return jsonify({"error": "Missing required fields"}), 400
+        return jsonify({"error": "Missing fields"}), 400
 
     try:
         pdf_path, pdf_filename = generate_dmca_notice(
             owner_name, stolen_url, original_filename, watermark_id, detection_id
         )
-
-        # Mark detection as having DMCA generated
         if detection_id != "manual":
             mark_dmca_generated(detection_id)
-
-        # send_file() sends the PDF as a downloadable file
-        return send_file(
-            pdf_path,
-            as_attachment=True,  # Forces browser to download instead of display
-            download_name=pdf_filename,
-            mimetype="application/pdf"
-        )
-
+        return send_file(pdf_path, as_attachment=True,
+                         download_name=pdf_filename, mimetype="application/pdf")
     except Exception as e:
-        return jsonify({"error": f"DMCA generation failed: {str(e)}"}), 500
+        return jsonify({"error": str(e)}), 500
 
-# ─────────────────────────────────────────────
-# ROUTE 7: Dashboard Data (for frontend)
-# ─────────────────────────────────────────────
-@app.route("/dashboard-data")
+@app.route("/api/dashboard-data")
+@login_required
 def dashboard_data():
-    """Returns all data needed for the dashboard."""
+    user = get_current_user()
     return jsonify({
-        "stats": get_stats(),
-        "protected_videos": get_all_protected_videos(),
-        "detections": get_all_detections()
+        "stats": get_user_stats(user["id"]),
+        "protected_videos": get_user_protected_videos(user["id"]),
+        "detections": get_user_detections(user["id"])
     })
 
-# ─────────────────────────────────────────────
-# ROUTE 8: Download a Protected Video
-# ─────────────────────────────────────────────
 @app.route("/download/<filename>")
+@login_required
 def download_protected(filename):
-    """Serves a protected (watermarked) video for download."""
     file_path = os.path.join(PROTECTED_FOLDER, filename)
     if not os.path.exists(file_path):
         return jsonify({"error": "File not found"}), 404
     return send_file(file_path, as_attachment=True)
 
-# ─────────────────────────────────────────────
-# Start the app
-# ─────────────────────────────────────────────
 if __name__ == "__main__":
-    # Create folders if they don't exist
     for folder in [UPLOAD_FOLDER, PROTECTED_FOLDER, NOTICES_FOLDER]:
         os.makedirs(folder, exist_ok=True)
-
-    # Initialize database (creates tables if needed)
     init_db()
-
-    # Run Flask development server
-    # debug=True means server auto-restarts when you edit code
-    # host="0.0.0.0" means accessible from any device on your network
     app.run(debug=True, host="0.0.0.0", port=5000)
