@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>StampIt — Dashboard</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #080810;
+      --surface: #0f0f1a;
+      --surface2: #151525;
+      --border: rgba(255,255,255,0.07);
+      --purple: #6366f1;
+      --violet: #8b5cf6;
+      --blue: #3b82f6;
+      --green: #10b981;
+      --red: #ef4444;
+      --yellow: #f59e0b;
+      --text: #e8e8f8;
+      --muted: rgba(255,255,255,0.35);
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── NAVBAR ── */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+      height: 60px;
+      background: rgba(15,15,26,0.9);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .nav-logo {
+      font-size: 20px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.5px;
+    }
+    .nav-logo span { color: #818cf8; }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .nav-user {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .nav-user b { color: var(--text); }
+
+    .btn-logout {
+      padding: 6px 16px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      transition: all 0.2s;
+    }
+    .btn-logout:hover { border-color: var(--red); color: #fca5a5; }
+
+    /* ── STATS ROW ── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .stat-box {
+      background: var(--surface);
+      padding: 20px 24px;
+      text-align: center;
+    }
+
+    .stat-num {
+      font-size: 2rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--purple), var(--violet));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .stat-lbl {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-top: 4px;
+    }
+
+    /* ── MAIN TWO-PANEL LAYOUT ── */
+    .main-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      min-height: calc(100vh - 60px - 81px);
+    }
+
+    /* LEFT PANEL — PROTECT */
+    .panel-protect {
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 0;
+    }
+
+    /* RIGHT PANEL — DETECT & CHECK */
+    .panel-detect {
+      background: var(--bg);
+    }
+
+    .panel-header {
+      padding: 24px 28px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .panel-icon {
+      width: 38px; height: 38px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .icon-purple { background: rgba(99,102,241,0.15); }
+    .icon-green  { background: rgba(16,185,129,0.15); }
+    .icon-blue   { background: rgba(59,130,246,0.15); }
+    .icon-red    { background: rgba(239,68,68,0.15); }
+    .icon-yellow { background: rgba(245,158,11,0.15); }
+
+    .panel-title { font-size: 16px; font-weight: 600; color: var(--text); }
+    .panel-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+    .panel-body { padding: 24px 28px; }
+
+    /* ── FORM ELEMENTS ── */
+    .field { margin-bottom: 16px; }
+    .field label {
+      display: block;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 7px;
+    }
+
+    .field input[type="text"] {
+      width: 100%;
+      padding: 11px 14px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      color: var(--text);
+      font-size: 13px;
+      font-family: 'Inter', sans-serif;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .field input[type="text"]:focus { border-color: var(--purple); }
+    .field input[type="text"]::placeholder { color: rgba(255,255,255,0.15); }
+
+    /* Upload Drop Zone */
+    .drop-zone {
+      border: 2px dashed rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 28px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: var(--purple);
+      background: rgba(99,102,241,0.05);
+    }
+    .drop-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+    .drop-icon { font-size: 32px; margin-bottom: 8px; }
+    .drop-text { font-size: 13px; color: var(--muted); }
+    .drop-text b { color: var(--purple); }
+    .drop-formats { font-size: 11px; color: rgba(255,255,255,0.2); margin-top: 4px; }
+    .drop-selected { font-size: 12px; color: var(--green); margin-top: 6px; font-weight: 500; }
+
+    /* Buttons */
+    .btn-primary {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, var(--purple), var(--violet));
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      transition: all 0.2s;
+      margin-top: 4px;
+    }
+    .btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
+
+    .btn-green {
+      background: linear-gradient(135deg, #059669, #10b981);
+    }
+
+    .btn-blue {
+      background: linear-gradient(135deg, #2563eb, #3b82f6);
+    }
+
+    .btn-red {
+      background: linear-gradient(135deg, #dc2626, #ef4444);
+    }
+
+    /* ── SUB TABS inside right panel ── */
+    .sub-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sub-tab {
+      flex: 1;
+      padding: 14px;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .sub-tab.active {
+      color: var(--purple);
+      border-bottom-color: var(--purple);
+    }
+
+    .sub-content { display: none; padding: 24px 28px; }
+    .sub-content.active { display: block; }
+
+    /* ── RESULT BOXES ── */
+    .result {
+      display: none;
+      margin-top: 16px;
+      padding: 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      line-height: 1.7;
+      border: 1px solid transparent;
+    }
+    .result.show { display: block; }
+    .result.success { background: rgba(16,185,129,0.08); border-color: rgba(16,185,129,0.2); color: #6ee7b7; }
+    .result.error   { background: rgba(239,68,68,0.08);  border-color: rgba(239,68,68,0.2);  color: #fca5a5; }
+    .result.info    { background: rgba(99,102,241,0.08); border-color: rgba(99,102,241,0.2); color: #a5b4fc; }
+    .result.warning { background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.2); color: #fcd34d; }
+
+    .result h3 { font-size: 15px; margin-bottom: 8px; }
+
+    code {
+      background: rgba(0,0,0,0.3);
+      padding: 2px 7px;
+      border-radius: 5px;
+      font-family: monospace;
+      font-size: 12px;
+    }
+
+    /* ── MY VIDEOS LIST ── */
+    .videos-section {
+      border-top: 1px solid var(--border);
+      padding: 20px 28px;
+    }
+
+    .section-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 14px;
+    }
+
+    .video-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      margin-bottom: 8px;
+      gap: 10px;
+    }
+
+    .video-item-info { flex: 1; min-width: 0; }
+    .video-item-name { font-size: 13px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .video-item-id { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    .video-item-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+    .btn-sm {
+      padding: 5px 12px;
+      border-radius: 7px;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      font-family: 'Inter', sans-serif;
+      transition: all 0.15s;
+    }
+    .btn-sm-purple { background: rgba(99,102,241,0.15); color: #a5b4fc; }
+    .btn-sm-purple:hover { background: rgba(99,102,241,0.25); }
+    .btn-sm-green { background: rgba(16,185,129,0.15); color: #6ee7b7; }
+    .btn-sm-green:hover { background: rgba(16,185,129,0.25); }
+
+    /* ── DETECTIONS ── */
+    .detection-item {
+      padding: 14px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      margin-bottom: 8px;
+    }
+
+    .det-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 9px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .badge-red { background: rgba(239,68,68,0.15); color: #fca5a5; }
+    .badge-purple { background: rgba(139,92,246,0.15); color: #c4b5fd; }
+
+    .det-url { font-size: 12px; color: var(--muted); word-break: break-all; }
+    .det-url a { color: #818cf8; }
+    .det-confidence { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    /* ── CONFIDENCE BAR ── */
+    .conf-bar-wrap { margin-top: 6px; }
+    .conf-bar-bg {
+      height: 4px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .conf-bar-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 0.8s ease;
+    }
+
+    /* Loading */
+    .loading-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 999;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+    }
+
+    .spinner {
+      width: 42px; height: 42px;
+      border: 3px solid rgba(255,255,255,0.1);
+      border-top-color: var(--purple);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-overlay p { color: var(--muted); font-size: 14px; }
+
+    .empty-state { text-align: center; padding: 28px 0; color: var(--muted); font-size: 13px; }
+    .empty-state .ei { font-size: 32px; margin-bottom: 8px; }
+
+    @media (max-width: 768px) {
+      .main-layout { grid-template-columns: 1fr; }
+      .stats-row { grid-template-columns: repeat(2,1fr); }
+      .panel-protect { border-right: none; border-bottom: 1px solid var(--border); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav>
+  <div class="nav-logo">Stamp<span>It</span> 🔏</div>
+  <div class="nav-right">
+    <div class="nav-user">Signed in as <b>{{ user.username }}</b></div>
+    <button class="btn-logout" onclick="doLogout()">Sign Out</button>
+  </div>
+</nav>
+
+<!-- STATS -->
+<div class="stats-row">
+  <div class="stat-box"><div class="stat-num" id="sProtected">—</div><div class="stat-lbl">Videos Protected</div></div>
+  <div class="stat-box"><div class="stat-num" id="sStolen">—</div><div class="stat-lbl">Stolen Found</div></div>
+  <div class="stat-box"><div class="stat-num" id="sFake">—</div><div class="stat-lbl">Deepfakes Detected</div></div>
+  <div class="stat-box"><div class="stat-num" id="sDmca">—</div><div class="stat-lbl">DMCA Notices</div></div>
+</div>
+
+<!-- MAIN TWO PANEL -->
+<div class="main-layout">
+
+  <!-- ══ LEFT PANEL — PROTECT ══ -->
+  <div class="panel-protect">
+    <div class="panel-header">
+      <div class="panel-icon icon-purple">🔒</div>
+      <div>
+        <div class="panel-title">Protect Your Video</div>
+        <div class="panel-sub">Add invisible stamp to prove ownership</div>
+      </div>
+    </div>
+
+    <div class="panel-body">
+      <div class="field">
+        <label>Your Name / Channel</label>
+        <input type="text" id="ownerName" placeholder="e.g. CricketWorld India"/>
+      </div>
+      <div class="field">
+        <label>Upload Video</label>
+        <div class="drop-zone" id="dropZone">
+          <input type="file" id="protectFile" accept="video/*" onchange="fileSelected(this,'dropLabel')"/>
+          <div class="drop-icon">🎬</div>
+          <div class="drop-text">Drop video here or <b>browse</b></div>
+          <div class="drop-formats">MP4 • AVI • MOV • MKV</div>
+          <div class="drop-selected" id="dropLabel"></div>
+        </div>
+      </div>
+      <button class="btn-primary" onclick="protectVideo()">🔏 Stamp & Protect Video</button>
+      <div class="result" id="rProtect"></div>
+    </div>
+
+    <!-- MY VIDEOS -->
+    <div class="videos-section">
+      <div class="section-title">My Protected Videos</div>
+      <div id="myVideosList">
+        <div class="empty-state"><div class="ei">📂</div>No protected videos yet</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ RIGHT PANEL — DETECT/CHECK/CRAWL/LOG ══ -->
+  <div class="panel-detect">
+    <div class="sub-tabs">
+      <div class="sub-tab active" onclick="switchSub('fake',this)">🔍 Detect Fake</div>
+      <div class="sub-tab" onclick="switchSub('wm',this)">🔎 Check Stamp</div>
+      <div class="sub-tab" onclick="switchSub('crawl',this)">🌐 Find Stolen</div>
+      <div class="sub-tab" onclick="switchSub('log',this)">📋 Log</div>
+    </div>
+
+    <!-- DETECT FAKE -->
+    <div class="sub-content active" id="sub-fake">
+      <div class="panel-header" style="padding:0 0 20px; border:none;">
+        <div class="panel-icon icon-green">🤖</div>
+        <div>
+          <div class="panel-title">Deepfake Detection</div>
+          <div class="panel-sub">AI analyzes if video is real or generated</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Upload Suspicious Video</label>
+        <div class="drop-zone">
+          <input type="file" id="fakeFile" accept="video/*" onchange="fileSelected(this,'fakeLabel')"/>
+          <div class="drop-icon">🎭</div>
+          <div class="drop-text">Drop video to analyze</div>
+          <div class="drop-selected" id="fakeLabel"></div>
+        </div>
+      </div>
+      <button class="btn-primary btn-green" onclick="detectFake()">🔍 Analyze for Deepfake</button>
+      <div class="result" id="rFake"></div>
+    </div>
+
+    <!-- CHECK WATERMARK -->
+    <div class="sub-content" id="sub-wm">
+      <div class="panel-header" style="padding:0 0 20px; border:none;">
+        <div class="panel-icon icon-blue">🔎</div>
+        <div>
+          <div class="panel-title">Check Stamp</div>
+          <div class="panel-sub">See if a video carries a StampIt watermark</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Upload Video to Check</label>
+        <div class="drop-zone">
+          <input type="file" id="wmFile" accept="video/*" onchange="fileSelected(this,'wmLabel')"/>
+          <div class="drop-icon">🔬</div>
+          <div class="drop-text">Drop video to scan for stamp</div>
+          <div class="drop-selected" id="wmLabel"></div>
+        </div>
+      </div>
+      <button class="btn-primary btn-blue" onclick="checkWatermark()">🔎 Scan for Stamp</button>
+      <div class="result" id="rWm"></div>
+    </div>
+
+    <!-- FIND STOLEN -->
+    <div class="sub-content" id="sub-crawl">
+      <div class="panel-header" style="padding:0 0 20px; border:none;">
+        <div class="panel-icon icon-red">🌐</div>
+        <div>
+          <div class="panel-title">Find Stolen Copies</div>
+          <div class="panel-sub">Crawl YouTube for unauthorized uploads</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Owner Name</label>
+        <input type="text" id="crawlOwner" placeholder="Your channel name"/>
+      </div>
+      <div class="field">
+        <label>Original Filename</label>
+        <input type="text" id="crawlFile" placeholder="e.g. ipl_final.mp4"/>
+      </div>
+      <div class="field">
+        <label>Stamp ID (from protection step)</label>
+        <input type="text" id="crawlWm" placeholder="e.g. a3f92b1c4d5e6f78"/>
+      </div>
+      <button class="btn-primary btn-red" onclick="crawlYT()">🔍 Search YouTube</button>
+      <div class="result" id="rCrawl"></div>
+    </div>
+
+    <!-- DETECTIONS LOG -->
+    <div class="sub-content" id="sub-log">
+      <div class="panel-header" style="padding:0 0 20px; border:none;">
+        <div class="panel-icon icon-yellow">📋</div>
+        <div>
+          <div class="panel-title">Detections Log</div>
+          <div class="panel-sub">All stolen & fake videos found</div>
+        </div>
+      </div>
+      <div id="detectionsList">
+        <div class="empty-state"><div class="ei">🔍</div>No detections yet</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loader">
+  <div class="spinner"></div>
+  <p id="loaderText">Processing...</p>
+</div>
+
+<script>
+function showLoader(txt='Processing...') {
+  document.getElementById('loader').style.display='flex';
+  document.getElementById('loaderText').textContent=txt;
+}
+function hideLoader() { document.getElementById('loader').style.display='none'; }
+
+function fileSelected(input, labelId) {
+  const lbl = document.getElementById(labelId);
+  if (input.files[0]) lbl.textContent = '✓ ' + input.files[0].name;
+}
+
+function switchSub(name, el) {
+  document.querySelectorAll('.sub-content').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.sub-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('sub-'+name).classList.add('active');
+  el.classList.add('active');
+  if (name === 'log') loadLog();
+}
+
+function showResult(id, html, type='info') {
+  const el = document.getElementById(id);
+  el.className = 'result show ' + type;
+  el.innerHTML = html;
+}
+
+// ── Stats & Videos ──
+async function loadData() {
+  const res = await fetch('/api/dashboard-data');
+  const data = await res.json();
+  document.getElementById('sProtected').textContent = data.stats.total_protected;
+  document.getElementById('sStolen').textContent    = data.stats.total_stolen;
+  document.getElementById('sFake').textContent      = data.stats.total_fake;
+  document.getElementById('sDmca').textContent      = data.stats.total_dmca;
+  renderVideos(data.protected_videos);
+}
+
+function renderVideos(videos) {
+  const el = document.getElementById('myVideosList');
+  if (!videos.length) {
+    el.innerHTML = '<div class="empty-state"><div class="ei">📂</div>No protected videos yet</div>';
+    return;
+  }
+  el.innerHTML = videos.map(v => `
+    <div class="video-item">
+      <div class="video-item-info">
+        <div class="video-item-name">🎬 ${v.original_filename}</div>
+        <div class="video-item-id">ID: <code>${v.watermark_id}</code></div>
+      </div>
+      <div class="video-item-actions">
+        <button class="btn-sm btn-sm-purple" onclick="prefillCrawl('${v.owner_name}','${v.original_filename}','${v.watermark_id}')">Find Stolen</button>
+        <a href="/download/${v.protected_filename}"><button class="btn-sm btn-sm-green">Download</button></a>
+      </div>
+    </div>
+  `).join('');
+}
+
+function prefillCrawl(owner, filename, wmId) {
+  document.getElementById('crawlOwner').value = owner;
+  document.getElementById('crawlFile').value  = filename;
+  document.getElementById('crawlWm').value    = wmId;
+  // Switch to crawl tab
+  document.querySelectorAll('.sub-content').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.sub-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('sub-crawl').classList.add('active');
+  document.querySelectorAll('.sub-tab')[2].classList.add('active');
+}
+
+// ── Protect ──
+async function protectVideo() {
+  const owner = document.getElementById('ownerName').value.trim();
+  const file  = document.getElementById('protectFile').files[0];
+  if (!owner) return alert('Enter your name');
+  if (!file)  return alert('Select a video');
+
+  const fd = new FormData();
+  fd.append('owner_name', owner);
+  fd.append('video', file);
+
+  showLoader('Embedding invisible stamp...');
+  try {
+    const res  = await fetch('/api/protect', { method:'POST', body:fd });
+    const data = await res.json();
+    hideLoader();
+    if (data.success) {
+      showResult('rProtect', `
+        <h3>✅ Video Stamped!</h3>
+        <p><b>Stamp ID:</b> <code>${data.watermark_id}</code></p>
+        <p style="margin-top:8px;font-size:12px;opacity:0.7">Save this ID — needed to search for stolen copies</p>
+        <a href="/download/${data.protected_filename}" style="display:inline-block;margin-top:10px;padding:7px 16px;background:rgba(16,185,129,0.15);color:#6ee7b7;border-radius:7px;text-decoration:none;font-size:12px">⬇️ Download Protected Video</a>
+      `, 'success');
+      loadData();
+    } else {
+      showResult('rProtect', `❌ ${data.error}`, 'error');
+    }
+  } catch(e) { hideLoader(); showResult('rProtect','❌ '+e.message,'error'); }
+}
+
+// ── Detect Fake ──
+async function detectFake() {
+  const file = document.getElementById('fakeFile').files[0];
+  if (!file) return alert('Select a video');
+
+  const fd = new FormData();
+  fd.append('video', file);
+
+  showLoader('Analyzing video frames...');
+  try {
+    const res  = await fetch('/api/detect-fake', { method:'POST', body:fd });
+    const data = await res.json();
+    hideLoader();
+    if (data.success) {
+      const isFake  = data.is_fake;
+      const barColor = isFake ? '#ef4444' : '#10b981';
+      showResult('rFake', `
+        <h3>${isFake ? '🚨 FAKE DETECTED' : '✅ APPEARS REAL'}</h3>
+        <p>Confidence: <b>${data.confidence}%</b></p>
+        <div class="conf-bar-wrap">
+          <div class="conf-bar-bg">
+            <div class="conf-bar-fill" style="width:${data.confidence}%;background:${barColor}"></div>
+          </div>
+        </div>
+        <p style="margin-top:8px;font-size:12px;opacity:0.7">${data.reason}</p>
+      `, isFake ? 'error' : 'success');
+      loadData();
+    } else {
+      showResult('rFake','❌ '+data.error,'error');
+    }
+  } catch(e) { hideLoader(); showResult('rFake','❌ '+e.message,'error'); }
+}
+
+// ── Check Watermark ──
+async function checkWatermark() {
+  const file = document.getElementById('wmFile').files[0];
+  if (!file) return alert('Select a video');
+
+  const fd = new FormData();
+  fd.append('video', file);
+
+  showLoader('Scanning for hidden stamp...');
+  try {
+    const res  = await fetch('/api/check-watermark', { method:'POST', body:fd });
+    const data = await res.json();
+    hideLoader();
+    if (data.success) {
+      if (data.watermark_found) {
+        const ov = data.original_video;
+        showResult('rWm', `
+          <h3>🔏 Stamp Found!</h3>
+          <p>Stamp ID: <code>${data.watermark_id}</code></p>
+          ${ov ? `<p>Owner: <b>${ov.owner_name}</b></p><p>File: ${ov.original_filename}</p>` : ''}
+          <p style="margin-top:6px">${data.belongs_to_you ? '✅ This video belongs to YOU' : 'ℹ️ Stamp found but from different account'}</p>
+        `, data.belongs_to_you ? 'success' : 'warning');
+      } else {
+        showResult('rWm','<h3>ℹ️ No Stamp Found</h3><p>This video has no StampIt watermark.</p>','info');
+      }
+    } else {
+      showResult('rWm','❌ '+data.error,'error');
+    }
+  } catch(e) { hideLoader(); showResult('rWm','❌ '+e.message,'error'); }
+}
+
+// ── Crawl YouTube ──
+async function crawlYT() {
+  const owner    = document.getElementById('crawlOwner').value.trim();
+  const filename = document.getElementById('crawlFile').value.trim();
+  const wmId     = document.getElementById('crawlWm').value.trim();
+  if (!owner||!filename||!wmId) return alert('Fill all fields');
+
+  showLoader('Searching YouTube for stolen copies...');
+  try {
+    const res  = await fetch('/api/crawl', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({owner_name:owner, original_filename:filename, watermark_id:wmId})
+    });
+    const data = await res.json();
+    hideLoader();
+    if (data.success) {
+      if (!data.suspicious_count) {
+        showResult('rCrawl','<h3>✅ No stolen copies found</h3>','success');
+      } else {
+        let html = `<h3>🚨 ${data.suspicious_count} suspicious video(s) found</h3>`;
+        data.suspicious_videos.forEach(v => {
+          html += `
+            <div style="margin-top:12px;padding:10px;background:rgba(0,0,0,0.2);border-radius:8px">
+              <p style="font-weight:500">${v.title}</p>
+              <p style="font-size:11px;margin-top:3px">Channel: ${v.channel}</p>
+              <p style="font-size:11px"><a href="${v.url}" target="_blank" style="color:#818cf8">${v.url}</a></p>
+              <p style="font-size:11px;margin-top:4px">Suspicion: ${v.suspicion_score}%</p>
+              <button onclick="genDMCA('${owner}','${v.url}','${filename}','${wmId}','auto')"
+                style="margin-top:8px;padding:5px 12px;background:rgba(239,68,68,0.15);color:#fca5a5;border:none;border-radius:6px;cursor:pointer;font-size:11px">
+                📄 Generate DMCA Notice
+              </button>
+            </div>`;
+        });
+        showResult('rCrawl', html, 'error');
+        loadData();
+      }
+    } else {
+      showResult('rCrawl','❌ '+data.error,'error');
+    }
+  } catch(e) { hideLoader(); showResult('rCrawl','❌ '+e.message,'error'); }
+}
+
+// ── DMCA ──
+async function genDMCA(ownerName, stolenUrl, originalFilename, watermarkId, detectionId) {
+  showLoader('Generating DMCA notice PDF...');
+  try {
+    const res = await fetch('/api/generate-dmca', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({owner_name:ownerName, stolen_url:stolenUrl,
+                            original_filename:originalFilename, watermark_id:watermarkId,
+                            detection_id:detectionId})
+    });
+    hideLoader();
+    const blob = await res.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href=url; a.download='stampit_dmca.pdf'; a.click();
+    loadData();
+  } catch(e) { hideLoader(); alert('DMCA failed: '+e.message); }
+}
+
+// ── Log ──
+async function loadLog() {
+  const res  = await fetch('/api/dashboard-data');
+  const data = await res.json();
+  const el   = document.getElementById('detectionsList');
+
+  if (!data.detections.length) {
+    el.innerHTML = '<div class="empty-state"><div class="ei">🔍</div>No detections yet</div>';
+    return;
+  }
+
+  el.innerHTML = data.detections.map(d => {
+    const isFake   = d.detection_type === 'fake';
+    const barColor = d.confidence > 70 ? '#ef4444' : d.confidence > 50 ? '#f59e0b' : '#10b981';
+    return `
+      <div class="detection-item">
+        <div class="det-header">
+          <span class="badge ${isFake?'badge-purple':'badge-red'}">${isFake?'🤖 Deepfake':'🚨 Stolen'}</span>
+          <span style="font-size:11px;color:var(--muted)">${d.detected_at}</span>
+        </div>
+        <div class="det-url">${d.video_url ? `<a href="${d.video_url}" target="_blank">${d.video_url}</a>` : '—'}</div>
+        <div class="conf-bar-wrap" style="margin-top:8px">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:3px">Confidence: ${d.confidence}%</div>
+          <div class="conf-bar-bg"><div class="conf-bar-fill" style="width:${d.confidence}%;background:${barColor}"></div></div>
+        </div>
+        <div style="margin-top:6px;font-size:11px;color:var(--muted)">DMCA: ${d.dmca_generated?'✅ Generated':'❌ Not yet'}</div>
+      </div>`;
+  }).join('');
+}
+
+async function doLogout() {
+  await fetch('/api/logout', {method:'POST'});
+  window.location.href = '/';
+}
+
+// Init
+loadData();
+</script>
+</body>
+</html>
