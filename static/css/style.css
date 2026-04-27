@@ -1,0 +1,374 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+:root {
+    --bg: #020408;
+    --bg-gradient: radial-gradient(circle at 0% 0%, rgba(0, 242, 255, 0.05) 0%, transparent 50%),
+                   radial-gradient(circle at 100% 100%, rgba(255, 184, 77, 0.05) 0%, transparent 50%);
+    --surface: rgba(255, 255, 255, 0.03);
+    --surface-border: rgba(255, 255, 255, 0.1);
+    --accent-cyan: #00f2ff;
+    --accent-amber: #ffb84d;
+    --text-main: #ffffff;
+    --text-dim: #808080;
+    --logo-main: #ffffff;
+    --btn-text: #000;
+
+    /* Login-specific tokens */
+    --card-bg: rgba(255, 255, 255, 0.04);
+    --input-bg: rgba(0, 0, 0, 0.35);
+    --panel-bg: rgba(5, 8, 16, 0.90);
+}
+
+[data-theme="light"] {
+    --bg: #f4f7fa; /* Cleaner, premium icy-white/gray */
+    --bg-gradient: radial-gradient(ellipse at 0% 0%, rgba(0, 136, 255, 0.12) 0%, transparent 50%),
+                   radial-gradient(ellipse at 100% 100%, rgba(255, 140, 0, 0.08) 0%, transparent 50%);
+    --surface: rgba(255, 255, 255, 0.65); /* True glassmorphism in light mode */
+    --surface-border: rgba(0, 0, 0, 0.08);
+    --accent-cyan: #0066ff; /* Deeper blue for better text readability */
+    --accent-amber: #e67e22;
+    --text-main: #0f172a; /* Sharp, dark slate for readability */
+    --text-dim: #4b5563;
+    --logo-main: #0f172a;
+    --btn-text: #ffffff; /* Forces text to be white on light-mode buttons */
+
+    /* Light mode login tokens */
+    --card-bg: rgba(255, 255, 255, 0.90);
+    --input-bg: #ffffff;
+    --panel-bg: #0f172a; /* Keeps the toggle panel dark/premium */
+}
+
+/* ===== GLOBAL ===== */
+body {
+    background-color: var(--bg);
+    background-image: var(--bg-gradient);
+    background-attachment: fixed;
+    color: var(--text-main);
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+    transition: background 0.4s ease;
+    margin: 0;
+    padding: 0;
+    font-family: 'Space Grotesk', sans-serif;
+}
+
+body.login-page {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* ===== SHARED COMPONENTS ===== */
+.logo-brand {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+}
+
+.logo-text {
+    font-size: 3rem;
+    font-weight: 800;
+    letter-spacing: -2px;
+    color: var(--logo-main);
+    text-transform: uppercase;
+    line-height: 1;
+    transition: color 0.3s ease;
+    font-family: 'Space Grotesk', sans-serif;
+}
+
+.logo-text span {
+    color: var(--accent-cyan);
+}
+
+#theme-toggle {
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    color: var(--text-main);
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.3s;
+}
+
+#theme-toggle:hover {
+    border-color: var(--accent-cyan);
+}
+
+.glass-card {
+    background: var(--surface);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--surface-border);
+    border-radius: 20px;
+}
+
+.btn-primary {
+    background: linear-gradient(45deg, var(--accent-cyan), #0088ff);
+    color: var(--btn-text);
+    border: none;
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-weight: bold;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    transition: 0.3s;
+}
+
+/* ===== LOGIN PAGE ===== */
+#bg-canvas {
+    position: fixed;
+    top: 0; left: 0;
+    z-index: 0;
+    pointer-events: none;
+}
+
+.main-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100vh;
+    position: relative;
+    z-index: 1;
+    gap: 14px;
+}
+
+/* LOGO — horizontal, icon + text side by side */
+.login-logo {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    white-space: nowrap;
+}
+
+.login-logo .logo-text {
+    font-size: 1.6rem;
+    letter-spacing: -1px;
+}
+
+/* Shield-style icon matching the screenshot */
+.login-logo-icon {
+    background: #0d1b2a;
+    border-radius: 10px;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 18px rgba(0, 242, 255, 0.35);
+    border: 1.5px solid rgba(0, 242, 255, 0.2);
+}
+
+/* THE CARD */
+.auth-wrapper {
+    position: relative;
+    width: 90%;
+    max-width: 820px;
+    min-height: 440px;
+    background: var(--card-bg);
+    border: 1px solid var(--surface-border);
+    border-radius: 20px;
+    overflow: hidden;
+    backdrop-filter: blur(20px);
+}
+
+/* ── FORM PANELS ── */
+.form-container {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    width: 50%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 40px 36px;
+    box-sizing: border-box;
+    transition: transform 0.6s ease, opacity 0.6s ease;
+}
+
+.sign-in-container {
+    left: 0;
+    z-index: 2;
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.sign-up-container {
+    left: 50%;
+    z-index: 1;
+    opacity: 0;
+    transform: translateX(100%);
+}
+
+.auth-wrapper.active .sign-in-container {
+    opacity: 0;
+    transform: translateX(-100%);
+    z-index: 1;
+}
+
+.auth-wrapper.active .sign-up-container {
+    opacity: 1;
+    transform: translateX(0);
+    z-index: 2;
+}
+
+/* ── TOGGLE PANEL ── */
+.toggle-panel {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 50%;
+    height: 100%;
+    background: var(--panel-bg);
+    border-left: 1px solid var(--surface-border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 36px;
+    box-sizing: border-box;
+    z-index: 10;
+    text-align: center;
+    transition: transform 0.6s cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+.auth-wrapper.active .toggle-panel {
+    transform: translateX(-100%);
+    border-left: none;
+    border-right: 1px solid var(--surface-border);
+}
+
+.toggle-content h2 {
+    color: #ffffff;
+    font-size: 2rem;
+    font-weight: 800;
+    margin: 0 0 12px 0;
+    font-family: 'Playfair Display', serif;
+}
+
+.toggle-content p {
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0 0 28px 0;
+    line-height: 1.6;
+    font-size: 0.92rem;
+}
+
+/* ── BUTTONS ── */
+.btn-outline {
+    background: transparent;
+    border: 2px solid var(--accent-amber);
+    color: var(--accent-amber);
+    padding: 12px 0;
+    border-radius: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    width: 100%;
+    display: block;
+    letter-spacing: 1.5px;
+    font-size: 0.85rem;
+    font-family: 'Space Grotesk', sans-serif;
+    transition: background 0.3s, box-shadow 0.3s, transform 0.2s;
+}
+
+.btn-outline:hover {
+    background: rgba(255, 184, 77, 0.12);
+    box-shadow: 0 0 16px rgba(255, 184, 77, 0.3);
+    transform: translateY(-2px);
+}
+
+.btn {
+    padding: 13px 24px;
+    border-radius: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    width: 100%;
+    letter-spacing: 1.5px;
+    font-size: 0.85rem;
+    font-family: 'Space Grotesk', sans-serif;
+    transition: transform 0.2s ease, box-shadow 0.3s ease;
+}
+
+.btn.btn-primary {
+ background: linear-gradient(90deg, var(--accent-cyan), #0088ff);
+    color: var(--btn-text); /* <-- This was hardcoded to #000, which broke light mode! */
+}
+
+.btn.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 150, 255, 0.4);
+}
+
+.btn.btn-primary:active {
+    transform: translateY(0);
+}
+
+/* ── FORM FIELDS ── */
+.form-group {
+    margin-bottom: 12px;
+    width: 100%;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--text-dim);
+    font-size: 0.75rem;
+    letter-spacing: 1.5px;
+    font-family: 'Space Grotesk', sans-serif;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 11px 16px;
+    background: var(--input-bg);
+    border: 1px solid var(--surface-border);
+    border-radius: 10px;
+    color: var(--text-main);
+    font-size: 0.95rem;
+    box-sizing: border-box;
+    font-family: 'Space Grotesk', sans-serif;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: var(--accent-cyan);
+}
+
+/* Password eye toggle */
+.input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-wrapper input {
+    padding-right: 44px;
+}
+
+.eye-toggle {
+    position: absolute;
+    right: 12px;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    transition: color 0.2s;
+}
+
+.eye-toggle:hover {
+    color: var(--accent-cyan);
+}
