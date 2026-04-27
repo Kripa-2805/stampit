@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <canvas id="bg-canvas" style="position:fixed; top:0; left:0; z-index:0; pointer-events:none;"></canvas>
+    <nav style="position:relative; z-index:1; display:flex; justify-content: space-between; padding: 20px 50px; align-items:center;">
+        <div style="display:flex !important; flex-direction: row !important; gap: 10px; align-items: center;">
+            <img src="{{ url_for('static', filename='assets/logo.svg') }}" style="width: 40px; height: 40px;" alt="StampIt Logo">
+            <div class="logo-text" style="font-size: 1.5rem; letter-spacing: -1px;">Stamp<span>It</span></div>
+        </div>
+        <div style="display:flex; gap:20px; align-items:center;">
+            <a href="/about" style="color:var(--text-main); text-decoration:none;">About</a>
+            <button id="theme-toggle" style="cursor:pointer; background:none; border:none; color:var(--text-main);">🌓</button>
+            <a href="/login" class="btn-primary" style="text-decoration:none; text-align:center;">Launch Portal</a>
+        </div>
+    </nav>
+
+    <section style="position:relative; z-index:1; text-align:center; padding: 100px 20px;">
+        <h1 style="font-size: 4rem; margin-bottom: 20px;">Protect Your <span style="color:var(--accent-cyan)">Digital Legacy</span></h1>
+        <p style="color:var(--text-dim); max-width: 600px; margin: 0 auto 40px;">The world's first invisible stamping and deepfake detection platform for sports creators. Stop piracy. Kill fakes.</p>
+        <a href="/login" class="btn-primary" style="text-decoration:none; font-size:1.2rem; padding:20px 40px;">Secure Your Content Now</a>
+    </section>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        lucide.createIcons();
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; });
+
+        const particles = Array.from({length: 60}, () => ({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            r: Math.random() * 1.5 + 0.5,
+            dx: (Math.random() - 0.5) * 0.4,
+            dy: (Math.random() - 0.5) * 0.4,
+            color: Math.random() > 0.5 ? 'rgba(0,242,255,0.5)' : 'rgba(255,184,77,0.4)'
+        }));
+
+        function animateBg() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                ctx.fill();
+                p.x += p.dx; p.y += p.dy;
+                if (p.x < 0 || p.x > canvas.width) p.dx *= -1;
+                if (p.y < 0 || p.y > canvas.height) p.dy *= -1;
+            });
+            requestAnimationFrame(animateBg);
+        }
+        animateBg();
+    </script>
+</body>
+</html>

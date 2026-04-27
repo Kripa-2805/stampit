@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div class="logo-brand" style="display:flex; justify-content:space-between; align-items:center; padding: 20px 50px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+            <img src="{{ url_for('static', filename='assets/logo.svg') }}" class="logo-svg" alt="StampIt Logo" style="width:36px;">
+            <div class="logo-text" style="font-size: 1.5rem; letter-spacing: -1px;">Stamp<span>It</span></div>
+        </div>
+        <div style="display:flex; gap:20px; align-items:center;">
+            <a href="/" style="color:var(--text-main); text-decoration:none; font-weight:bold;">← Back to Home</a>
+            <button id="theme-toggle" style="cursor:pointer; background:none; border:none; color:var(--text-main);">🌓</button>
+        </div>
+    </div>
+
+    <div style="max-width: 900px; margin: 40px auto; padding: 20px;">
+        
+        <div style="text-align: center; margin-bottom: 50px;">
+            <h1 style="font-size: 3.5rem; margin-bottom: 10px; line-height: 1.1;">Securing the Future of<br><span style="color:var(--accent-cyan)">Digital Sports Media</span></h1>
+            <p style="color:var(--text-dim); font-size: 1.1rem; max-width: 600px; margin: 0 auto;">
+                Built for the Google Solution Challenge 2026. StampIt combats AI-generated misinformation and digital piracy using invisible watermarking and Google's advanced Generative AI.
+            </p>
+        </div>
+
+        <h2 style="font-size: 1.8rem; margin-bottom: 20px; border-bottom: 1px solid var(--surface-border); padding-bottom: 10px;">🌍 UN Sustainable Development Goals</h2>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 50px;">
+            <div class="glass-card" style="padding: 25px;">
+                <div style="display:flex; align-items:center; gap:12px; margin-bottom: 15px;">
+                    <i data-lucide="scale" style="color:var(--accent-amber); width:28px; height:28px;"></i>
+                    <h3 style="margin:0; font-size:1.2rem;">Goal 16: Peace & Justice</h3>
+                </div>
+                <p style="color:var(--text-dim); line-height: 1.6; margin:0; font-size: 0.95rem;">
+                    Deepfakes destabilize public trust and create fake narratives. StampIt protects institutions and journalists by providing cryptographically secure proof of authenticity for digital media.
+                </p>
+            </div>
+            
+            <div class="glass-card" style="padding: 25px;">
+                <div style="display:flex; align-items:center; gap:12px; margin-bottom: 15px;">
+                    <i data-lucide="cpu" style="color:var(--accent-cyan); width:28px; height:28px;"></i>
+                    <h3 style="margin:0; font-size:1.2rem;">Goal 9: Innovation</h3>
+                </div>
+                <p style="color:var(--text-dim); line-height: 1.6; margin:0; font-size: 0.95rem;">
+                    We are building resilient digital infrastructure. By automating invisible identity tagging and legal DMCA generation, we empower independent creators with enterprise-grade security.
+                </p>
+            </div>
+        </div>
+
+        <h2 style="font-size: 1.8rem; margin-bottom: 20px; border-bottom: 1px solid var(--surface-border); padding-bottom: 10px;">⚡ Powered by Google</h2>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 50px;">
+            <div class="glass-card" style="padding: 25px; border-left: 4px solid var(--accent-cyan);">
+                <h3 style="margin: 0 0 10px 0;">Google Gemini 2.5 AI</h3>
+                <p style="color:var(--text-dim); line-height: 1.6; margin:0; font-size: 0.95rem;">
+                    We utilize Google's newest multimodal AI model to run frame-by-frame deepfake forensic analysis, detecting synthetic physics, unnatural blinking, and AI manipulation in seconds.
+                </p>
+            </div>
+
+            <div class="glass-card" style="padding: 25px; border-left: 4px solid #ff5050;">
+                <h3 style="margin: 0 0 10px 0;">YouTube Data API v3</h3>
+                <p style="color:var(--text-dim); line-height: 1.6; margin:0; font-size: 0.95rem;">
+                    StampIt integrates directly into the world's largest video platform. We use the YouTube API to crawl metadata, identify suspicious channel patterns, and locate stolen, unauthorized copies.
+                </p>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>
