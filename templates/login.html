@@ -1,338 +1,127 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>StampIt — Login</title>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: 'Inter', sans-serif;
-      min-height: 100vh;
-      background: #080810;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-      position: relative;
-    }
-
-    /* Animated background blobs */
-    .blob {
-      position: fixed;
-      border-radius: 50%;
-      filter: blur(80px);
-      opacity: 0.15;
-      animation: float 8s ease-in-out infinite;
-      pointer-events: none;
-    }
-    .blob1 { width: 500px; height: 500px; background: #6366f1; top: -100px; left: -100px; animation-delay: 0s; }
-    .blob2 { width: 400px; height: 400px; background: #8b5cf6; bottom: -80px; right: -80px; animation-delay: 3s; }
-    .blob3 { width: 300px; height: 300px; background: #3b82f6; top: 50%; left: 50%; animation-delay: 5s; }
-    @keyframes float {
-      0%, 100% { transform: translate(0, 0) scale(1); }
-      50% { transform: translate(30px, -30px) scale(1.05); }
-    }
-
-    .card {
-      background: rgba(255,255,255,0.04);
-      backdrop-filter: blur(20px);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 24px;
-      padding: 48px 44px;
-      width: 100%;
-      max-width: 420px;
-      position: relative;
-      z-index: 1;
-    }
-
-    .logo-area {
-      text-align: center;
-      margin-bottom: 36px;
-    }
-
-    .logo-icon {
-      width: 56px; height: 56px;
-      background: linear-gradient(135deg, #6366f1, #8b5cf6);
-      border-radius: 16px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 26px;
-      margin-bottom: 12px;
-    }
-
-    .logo-name {
-      font-size: 26px;
-      font-weight: 800;
-      color: #fff;
-      letter-spacing: -0.5px;
-    }
-
-    .logo-name span { color: #818cf8; }
-
-    .logo-tag {
-      font-size: 12px;
-      color: rgba(255,255,255,0.35);
-      letter-spacing: 3px;
-      text-transform: uppercase;
-      margin-top: 4px;
-    }
-
-    /* Tab toggle */
-    .tab-toggle {
-      display: flex;
-      background: rgba(255,255,255,0.06);
-      border-radius: 12px;
-      padding: 4px;
-      margin-bottom: 28px;
-    }
-
-    .tab-toggle button {
-      flex: 1;
-      padding: 9px;
-      border: none;
-      border-radius: 9px;
-      background: transparent;
-      color: rgba(255,255,255,0.4);
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s;
-      font-family: 'Inter', sans-serif;
-    }
-
-    .tab-toggle button.active {
-      background: linear-gradient(135deg, #6366f1, #8b5cf6);
-      color: #fff;
-    }
-
-    .form-section { display: none; }
-    .form-section.active { display: block; }
-
-    .field {
-      margin-bottom: 16px;
-    }
-
-    .field label {
-      display: block;
-      font-size: 12px;
-      font-weight: 500;
-      color: rgba(255,255,255,0.45);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 8px;
-    }
-
-    .field input {
-      width: 100%;
-      padding: 13px 16px;
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 10px;
-      color: #fff;
-      font-size: 14px;
-      font-family: 'Inter', sans-serif;
-      transition: border-color 0.2s;
-      outline: none;
-    }
-
-    .field input:focus {
-      border-color: #6366f1;
-      background: rgba(99,102,241,0.08);
-    }
-
-    .field input::placeholder { color: rgba(255,255,255,0.2); }
-
-    .btn-submit {
-      width: 100%;
-      padding: 14px;
-      background: linear-gradient(135deg, #6366f1, #8b5cf6);
-      border: none;
-      border-radius: 12px;
-      color: #fff;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      margin-top: 8px;
-      font-family: 'Inter', sans-serif;
-      transition: all 0.2s;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .btn-submit:hover { opacity: 0.9; transform: translateY(-1px); }
-    .btn-submit:active { transform: translateY(0); }
-
-    .btn-submit.loading::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-      animation: shimmer 1s infinite;
-    }
-    @keyframes shimmer { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
-
-    .error-msg {
-      background: rgba(239,68,68,0.12);
-      border: 1px solid rgba(239,68,68,0.25);
-      border-radius: 8px;
-      padding: 10px 14px;
-      color: #fca5a5;
-      font-size: 13px;
-      margin-top: 12px;
-      display: none;
-    }
-
-    .footer-text {
-      text-align: center;
-      margin-top: 24px;
-      font-size: 12px;
-      color: rgba(255,255,255,0.2);
-    }
-  </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
-<body>
+<body class="login-page">
+    <canvas id="bg-canvas"></canvas>
 
-<div class="blob blob1"></div>
-<div class="blob blob2"></div>
-<div class="blob blob3"></div>
+    <div class="main-container">
 
-<div class="card">
-  <div class="logo-area">
-    <div class="logo-icon">🔏</div>
-    <div class="logo-name">Stamp<span>It</span></div>
-    <div class="logo-tag">Digital Asset Protection</div>
-  </div>
+        <!-- LOGO: horizontal row, sits above card -->
+        <div class="login-logo">
+            <img src="{{ url_for('static', filename='assets/stampit-logo.png') }}" alt="StampIt" style="height: 36px;">
+        </div>
 
-  <div class="tab-toggle">
-    <button class="active" onclick="switchTab('login')">Sign In</button>
-    <button onclick="switchTab('signup')">Create Account</button>
-  </div>
+        <div class="auth-wrapper" id="wrapper">
 
-  <!-- LOGIN FORM -->
-  <div class="form-section active" id="form-login">
-    <div class="field">
-      <label>Username</label>
-      <input type="text" id="loginUsername" placeholder="Enter your username"/>
+            <!-- SIGN IN FORM — left half -->
+            <div class="form-container sign-in-container">
+                <form action="/login" method="POST">
+                    <div class="form-group">
+                        <label>USERNAME</label>
+                        <input type="text" name="username" required placeholder="Enter your ID">
+                    </div>
+                    <div class="form-group">
+                        <label>PASSWORD</label>
+                        <div class="input-wrapper">
+                            <input type="password" name="password" id="signin-password" required placeholder="••••••••">
+                            <button type="button" class="eye-toggle" onclick="togglePassword('signin-password', this)">
+                                <i data-lucide="eye" style="width:18px;height:18px;"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="margin-top:18px;">ACCESS STAMPIT</button>
+                </form>
+            </div>
+
+            <!-- SIGN UP FORM — right half, hidden initially -->
+            <div class="form-container sign-up-container">
+                <form action="/signup" method="POST">
+                    <div class="form-group">
+                        <label>FULL NAME</label>
+                        <input type="text" name="fullname" required placeholder="Your Name">
+                    </div>
+                    <div class="form-group">
+                        <label>EMAIL</label>
+                        <input type="email" name="email" required placeholder="email@stampit.com">
+                    </div>
+                    <div class="form-group">
+                        <label>CREATE KEY</label>
+                        <div class="input-wrapper">
+                            <input type="password" name="password" id="signup-password" required placeholder="••••••••">
+                            <button type="button" class="eye-toggle" onclick="togglePassword('signup-password', this)">
+                                <i data-lucide="eye" style="width:18px;height:18px;"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="margin-top:18px;">JOIN STAMPIT</button>
+                </form>
+            </div>
+
+            <!-- TOGGLE PANEL — slides as curtain -->
+            <div class="toggle-panel">
+                <div class="toggle-content">
+                    <h2 id="toggle-title">New Here?</h2>
+                    <p id="toggle-text">Join the most secure authentication network on the planet.</p>
+                </div>
+                <button class="btn btn-outline" id="toggle-btn">CREATE ACCOUNT</button>
+            </div>
+
+        </div>
     </div>
-    <div class="field">
-      <label>Password</label>
-      <input type="password" id="loginPassword" placeholder="Enter your password"/>
-    </div>
-    <button class="btn-submit" id="loginBtn" onclick="doLogin()">Sign In →</button>
-    <div class="error-msg" id="loginError"></div>
-  </div>
 
-  <!-- SIGNUP FORM -->
-  <div class="form-section" id="form-signup">
-    <div class="field">
-      <label>Username</label>
-      <input type="text" id="signupUsername" placeholder="Choose a username"/>
-    </div>
-    <div class="field">
-      <label>Email</label>
-      <input type="email" id="signupEmail" placeholder="your@email.com"/>
-    </div>
-    <div class="field">
-      <label>Password</label>
-      <input type="password" id="signupPassword" placeholder="Min. 6 characters"/>
-    </div>
-    <button class="btn-submit" id="signupBtn" onclick="doSignup()">Create Account →</button>
-    <div class="error-msg" id="signupError"></div>
-  </div>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; });
+        const particles = Array.from({length: 60}, () => ({
+            x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+            r: Math.random() * 1.5 + 0.5, dx: (Math.random() - 0.5) * 0.4, dy: (Math.random() - 0.5) * 0.4,
+            color: Math.random() > 0.5 ? 'rgba(0,242,255,0.5)' : 'rgba(255,184,77,0.4)'
+        }));
+        function animateBg() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                ctx.fillStyle = p.color; ctx.fill();
+                p.x += p.dx; p.y += p.dy;
+                if (p.x < 0 || p.x > canvas.width) p.dx *= -1;
+                if (p.y < 0 || p.y > canvas.height) p.dy *= -1;
+            });
+            requestAnimationFrame(animateBg);
+        }
+        animateBg();
+        lucide.createIcons();
 
-  <div class="footer-text">Protected by end-to-end encryption</div>
-</div>
+        function togglePassword(inputId, btn) {
+            const input = document.getElementById(inputId);
+            const isPassword = input.type === 'password';
+            input.type = isPassword ? 'text' : 'password';
+            btn.innerHTML = isPassword
+                ? '<i data-lucide="eye-off" style="width:18px;height:18px;"></i>'
+                : '<i data-lucide="eye" style="width:18px;height:18px;"></i>';
+            lucide.createIcons();
+        }
 
-<script>
-function switchTab(tab) {
-  document.querySelectorAll('.form-section').forEach(s => s.classList.remove('active'));
-  document.querySelectorAll('.tab-toggle button').forEach(b => b.classList.remove('active'));
-  document.getElementById('form-' + tab).classList.add('active');
-  event.target.classList.add('active');
-}
-
-async function doLogin() {
-  const btn = document.getElementById('loginBtn');
-  const errEl = document.getElementById('loginError');
-  const username = document.getElementById('loginUsername').value.trim();
-  const password = document.getElementById('loginPassword').value;
-
-  if (!username || !password) { showError(errEl, 'Please fill all fields'); return; }
-
-  btn.classList.add('loading');
-  btn.textContent = 'Signing in...';
-
-  try {
-    const res = await fetch('/api/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
-    });
-    const data = await res.json();
-    if (data.success) {
-      window.location.href = '/dashboard';
-    } else {
-      showError(errEl, data.error);
-      btn.classList.remove('loading');
-      btn.textContent = 'Sign In →';
-    }
-  } catch (e) {
-    showError(errEl, 'Connection error');
-    btn.classList.remove('loading');
-    btn.textContent = 'Sign In →';
-  }
-}
-
-async function doSignup() {
-  const btn = document.getElementById('signupBtn');
-  const errEl = document.getElementById('signupError');
-  const username = document.getElementById('signupUsername').value.trim();
-  const email = document.getElementById('signupEmail').value.trim();
-  const password = document.getElementById('signupPassword').value;
-
-  if (!username || !email || !password) { showError(errEl, 'Please fill all fields'); return; }
-
-  btn.classList.add('loading');
-  btn.textContent = 'Creating account...';
-
-  try {
-    const res = await fetch('/api/signup', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, email, password })
-    });
-    const data = await res.json();
-    if (data.success) {
-      window.location.href = '/dashboard';
-    } else {
-      showError(errEl, data.error);
-      btn.classList.remove('loading');
-      btn.textContent = 'Create Account →';
-    }
-  } catch (e) {
-    showError(errEl, 'Connection error');
-    btn.classList.remove('loading');
-    btn.textContent = 'Create Account →';
-  }
-}
-
-function showError(el, msg) {
-  el.textContent = msg;
-  el.style.display = 'block';
-  setTimeout(() => el.style.display = 'none', 4000);
-}
-
-// Allow Enter key to submit
-document.addEventListener('keydown', e => {
-  if (e.key === 'Enter') {
-    if (document.getElementById('form-login').classList.contains('active')) doLogin();
-    else doSignup();
-  }
-});
-</script>
+        const wrapper = document.getElementById('wrapper');
+        const toggleBtn = document.getElementById('toggle-btn');
+        toggleBtn.addEventListener('click', () => {
+            wrapper.classList.toggle('active');
+            const isActive = wrapper.classList.contains('active');
+            document.getElementById('toggle-title').innerText = isActive ? "Already a Member?" : "New Here?";
+            document.getElementById('toggle-text').innerText = isActive
+                ? "Enter your credentials to access your secure StampIt identity."
+                : "Join the most secure authentication network on the planet.";
+            toggleBtn.innerText = isActive ? "SIGN IN" : "CREATE ACCOUNT";
+        });
+    </script>
 </body>
 </html>
