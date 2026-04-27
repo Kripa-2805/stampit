@@ -1,4 +1,5 @@
 .env
-stampit.db
 __pycache__/
-*.pyc
+*.db
+static/protected/
+static/notices/
