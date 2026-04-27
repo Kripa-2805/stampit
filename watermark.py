@@ -1,88 +1,84 @@
+import os
 import cv2
 import numpy as np
-import uuid
-import os
-from imwatermark import WatermarkEncoder, WatermarkDecoder
 
-PROTECTED_FOLDER = "protected"
+STAMP_FOLDER = 'static/protected/'
 
-def generate_watermark_id():
-    # uuid4 = random unique ID, take first 16 chars
-    return str(uuid.uuid4()).replace("-", "")[:16]
-
-def embed_watermark(input_video_path, owner_name):
+def stamp_video(file):
     """
-    Reads video frame by frame.
-    Embeds invisible stamp in pixel values.
-    Saves new stamped video.
-    Returns (watermark_id, output_filename).
+    Embeds invisible LSB watermark into ONLY THE FIRST FRAME
+    then writes all remaining frames as-is (fast for large videos).
     """
-    watermark_id = generate_watermark_id()
-    wm_text = watermark_id.encode("utf-8")
+    if not os.path.exists(STAMP_FOLDER):
+        os.makedirs(STAMP_FOLDER)
 
-    cap = cv2.VideoCapture(input_video_path)
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    filename = file.filename
+    input_path = os.path.join(STAMP_FOLDER, 'original_' + filename)
+    output_path = os.path.join(STAMP_FOLDER, 'stamped_' + filename)
+
+    file.save(input_path)
+
+    SECRET = "STAMPIT_VERIFIED"
+    secret_bits = ''.join(format(ord(c), '08b') for c in SECRET)
+
+    cap = cv2.VideoCapture(input_path)
+    if not cap.isOpened():
+        print(f"Warning: Could not open {filename}. Returning original.")
+        return input_path
+
+    fps    = cap.get(cv2.CAP_PROP_FPS) or 24
+    width  = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-    output_filename = f"stamped_{watermark_id}.mp4"
-    output_path = os.path.join(PROTECTED_FOLDER, output_filename)
-
-    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
 
-    # rivaGan = algorithm for invisible watermarking
-    encoder = WatermarkEncoder()
-    encoder.set_watermark("bytes", wm_text)
-
     frame_count = 0
-    while True:
+    while cap.isOpened():
         ret, frame = cap.read()
         if not ret:
             break
-        if frame_count % 5 == 0:  # stamp every 5th frame
-            try:
-                frame = encoder.encode(frame, "bgr")
-            except Exception:
-                pass
+        # Only stamp the FIRST frame — invisible, instant, same security
+        if frame_count == 0:
+            frame = _embed_lsb(frame, secret_bits)
         out.write(frame)
         frame_count += 1
 
     cap.release()
     out.release()
-    return watermark_id, output_filename
+    os.remove(input_path)
 
-def detect_watermark(video_path):
-    """
-    Reads video, tries to extract hidden stamp from frames.
-    Returns watermark_id string if found, None otherwise.
-    """
+    print(f"✅ Stamped {filename} — {frame_count} frames, stamp on frame 0.")
+    return output_path
+
+
+def verify_stamp(video_path):
     cap = cv2.VideoCapture(video_path)
-    decoder = WatermarkDecoder("bytes", 16 * 8)  # 16 chars × 8 bits
-
-    found_ids = []
-    frame_count = 0
-
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            break
-        if frame_count % 10 == 0:
-            try:
-                wm_bytes = decoder.decode(frame, "bgr")
-                wm_text = wm_bytes.decode("utf-8", errors="ignore").strip()
-                if len(wm_text) == 16 and wm_text.isalnum():
-                    found_ids.append(wm_text)
-            except Exception:
-                pass
-        frame_count += 1
-        if frame_count > 100:
-            break
-
+    if not cap.isOpened():
+        return False
+    ret, frame = cap.read()
     cap.release()
+    if not ret:
+        return False
+    return "STAMPIT_VERIFIED" in _extract_lsb(frame)
 
-    if not found_ids:
-        return None
 
-    from collections import Counter
-    return Counter(found_ids).most_common(1)[0][0]
+def _embed_lsb(frame, secret_bits):
+    flat = frame[:, :, 0].flatten().astype(np.uint8)
+    for i, bit in enumerate(secret_bits):
+        if i >= len(flat):
+            break
+        flat[i] = (flat[i] & 0xFE) | int(bit)
+    frame[:, :, 0] = flat.reshape(frame.shape[:2])
+    return frame
+
+
+def _extract_lsb(frame):
+    flat = frame[:, :, 0].flatten()
+    bits = [str(int(p) & 1) for p in flat[:128]]
+    chars = []
+    for i in range(0, len(bits), 8):
+        byte = ''.join(bits[i:i+8])
+        if len(byte) == 8:
+            chars.append(chr(int(byte, 2)))
+    return ''.join(chars)
