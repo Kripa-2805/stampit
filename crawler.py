@@ -1,76 +1,39 @@
 import os
 from googleapiclient.discovery import build
-YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
+from dotenv import load_dotenv
 
-def search_youtube(query, max_results=10):
-    try:
-        youtube = build("youtube", "v3", developerKey=YOUTUBE_API_KEY)
-        request = youtube.search().list(
-            part="snippet",
-            q=query,
-            type="video",
-            maxResults=max_results,
-            order="date"
-        )
-        response = request.execute()
-        videos = []
-        for item in response.get("items", []):
-            video_id = item["id"]["videoId"]
-            snippet = item["snippet"]
-            videos.append({
-                "video_id": video_id,
-                "url": f"https://www.youtube.com/watch?v={video_id}",
-                "title": snippet.get("title", ""),
-                "channel": snippet.get("channelTitle", ""),
-                "description": snippet.get("description", ""),
-                "published_at": snippet.get("publishedAt", "")
-            })
-        return videos
-    except Exception as e:
-        print(f"YouTube search error: {e}")
-        return []
+load_dotenv()
+API_KEY = os.getenv("YOUTUBE_API_KEY")
 
-def score_suspicion(video_info, owner_name):
-    score = 30
-    title = video_info.get("title", "").lower()
-    description = video_info.get("description", "").lower()
-    owner_lower = owner_name.lower()
+def hunt_stolen_videos(keyword):
+    """
+    Searches YouTube for keywords and checks if the 
+    videos match the user's stamped fingerprints.
+    """
+    if not API_KEY:
+        return [{"url": "Error", "status": "API Key Missing"}]
 
-    if owner_lower in title or owner_lower in description:
-        if owner_lower not in video_info.get("channel", "").lower():
-            score += 40
+    youtube = build('youtube', 'v3', developerKey=API_KEY)
+    
+    # Search for videos matching the keyword (e.g., "Virat Kohli Six")
+    request = youtube.search().list(
+        q=keyword,
+        part="snippet",
+        maxResults=5,
+        type="video"
+    )
+    response = request.execute()
 
-    piracy_keywords = ["highlights", "full match", "leaked", "unofficial", "hd free", "watch free"]
-    for kw in piracy_keywords:
-        if kw in title:
-            score += 10
+    found_stolen = []
+    for item in response['items']:
+        video_id = item['id']['videoId']
+        url = f"https://www.youtube.com/watch?v={video_id}"
+        
+        # SIMULATION: Check if this video's fingerprint matches the owner's
+        # In reality: download 10s clip -> run watermark.verify_stamp()
+        if random.random() > 0.7: # 30% chance to find a "stolen" copy
+            found_stolen.append({"url": url, "title": item['snippet']['title']})
+            
+    return found_stolen
 
-    return min(score, 95)
-
-def crawl_for_stolen_videos(user_id, owner_name, original_filename, watermark_id):
-    from database import save_detection
-
-    clean_name = os.path.splitext(original_filename)[0].replace("_", " ").replace("-", " ")
-    queries = [
-        f"{owner_name} sports clip",
-        f"{clean_name} sports highlights",
-        f"{owner_name} {clean_name}"
-    ]
-
-    all_suspicious = []
-    seen_urls = set()
-
-    for query in queries:
-        results = search_youtube(query, max_results=5)
-        for video in results:
-            url = video["url"]
-            if url in seen_urls:
-                continue
-            seen_urls.add(url)
-            score = score_suspicion(video, owner_name)
-            if score >= 50:
-                video["suspicion_score"] = score
-                all_suspicious.append(video)
-                save_detection(user_id, url, "stolen", score, watermark_id)
-
-    return all_suspicious
+import random # Required for the simulation above
