@@ -1,24 +1,84 @@
 import os
+import cv2
+import numpy as np
 
-def stamp_video(file_obj):
+STAMP_FOLDER = 'static/protected/'
+
+def stamp_video(file):
     """
-    Cloud-Optimized Demo Version:
-    Bypasses heavy OpenCV processing to avoid 512MB RAM crash on Render Free Tier.
-    Simulates the invisible watermarking process instantly.
+    Embeds invisible LSB watermark into ONLY THE FIRST FRAME
+    then writes all remaining frames as-is (fast for large videos).
     """
-    print("Simulating invisible watermarking for cloud deployment...")
-    
-    # 1. Ensure the output folder exists
-    output_dir = 'static/protected/'
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+    if not os.path.exists(STAMP_FOLDER):
+        os.makedirs(STAMP_FOLDER)
 
-    # 2. Create the new filename
-    original_name = file_obj.filename
-    stamped_filename = f"stamped_{original_name}"
-    output_path = os.path.join(output_dir, stamped_filename)
+    filename = file.filename
+    input_path = os.path.join(STAMP_FOLDER, 'original_' + filename)
+    output_path = os.path.join(STAMP_FOLDER, 'stamped_' + filename)
 
-    # 3. Save the file instantly (bypassing OpenCV RAM limits)
-    file_obj.save(output_path)
-    
+    file.save(input_path)
+
+    SECRET = "STAMPIT_VERIFIED"
+    secret_bits = ''.join(format(ord(c), '08b') for c in SECRET)
+
+    cap = cv2.VideoCapture(input_path)
+    if not cap.isOpened():
+        print(f"Warning: Could not open {filename}. Returning original.")
+        return input_path
+
+    fps    = cap.get(cv2.CAP_PROP_FPS) or 24
+    width  = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
+
+    frame_count = 0
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
+        # Only stamp the FIRST frame — invisible, instant, same security
+        if frame_count == 0:
+            frame = _embed_lsb(frame, secret_bits)
+        out.write(frame)
+        frame_count += 1
+
+    cap.release()
+    out.release()
+    os.remove(input_path)
+
+    print(f"✅ Stamped {filename} — {frame_count} frames, stamp on frame 0.")
     return output_path
+
+
+def verify_stamp(video_path):
+    cap = cv2.VideoCapture(video_path)
+    if not cap.isOpened():
+        return False
+    ret, frame = cap.read()
+    cap.release()
+    if not ret:
+        return False
+    return "STAMPIT_VERIFIED" in _extract_lsb(frame)
+
+
+def _embed_lsb(frame, secret_bits):
+    flat = frame[:, :, 0].flatten().astype(np.uint8)
+    for i, bit in enumerate(secret_bits):
+        if i >= len(flat):
+            break
+        flat[i] = (flat[i] & 0xFE) | int(bit)
+    frame[:, :, 0] = flat.reshape(frame.shape[:2])
+    return frame
+
+
+def _extract_lsb(frame):
+    flat = frame[:, :, 0].flatten()
+    bits = [str(int(p) & 1) for p in flat[:128]]
+    chars = []
+    for i in range(0, len(bits), 8):
+        byte = ''.join(bits[i:i+8])
+        if len(byte) == 8:
+            chars.append(chr(int(byte, 2)))
+    return ''.join(chars)
